@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EstágioEnf — Entrar</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="estilos.css">
+</head>
+<body>
+
+<div class="tela-login">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="logo-icon">E</div>
+      <div class="logo-text"><span class="main">EstágioEnf</span><span class="sub">Sistema de estágio</span></div>
+    </div>
+    <div class="login-titulo">Bem-vinda(o)</div>
+    <div class="login-sub">Acesse com seu perfil</div>
+
+    <div class="perfil-tabs" id="tabsPerfil">
+      <button class="on" data-papel="aluno">Aluno</button>
+      <button data-papel="preceptor">Preceptor</button>
+      <button data-papel="supervisao">Supervisão</button>
+    </div>
+
+    <div class="login-erro" id="msgErro"></div>
+
+    <form id="formLogin">
+      <div class="campo-form">
+        <label>CPF</label>
+        <input type="text" id="campoCPF" placeholder="Somente números" required>
+      </div>
+      <div class="campo-form">
+        <label>Senha</label>
+        <input type="password" id="campoSenha" required>
+      </div>
+      <button type="submit" class="btn-login" id="btnEntrar">Entrar</button>
+    </form>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js"></script>
+<script src="auth.js"></script>
+<script>
+  let papelSelecionado = "aluno";
+  const destinoPorPapel = {
+    aluno: "aluno.html",
+    preceptor: "preceptor.html",
+    supervisao: "supervisao.html",
+  };
+
+  document.querySelectorAll("#tabsPerfil button").forEach(botao => {
+    botao.addEventListener("click", () => {
+      document.querySelectorAll("#tabsPerfil button").forEach(b => b.classList.remove("on"));
+      botao.classList.add("on");
+      papelSelecionado = botao.dataset.papel;
+    });
+  });
+
+  document.getElementById("formLogin").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const cpf = document.getElementById("campoCPF").value.trim();
+    const senha = document.getElementById("campoSenha").value;
+    const msgErro = document.getElementById("msgErro");
+    const btn = document.getElementById("btnEntrar");
+
+    msgErro.style.display = "none";
+    btn.disabled = true;
+    btn.textContent = "Entrando...";
+
+    const resultado = await fazerLogin(cpf, senha, papelSelecionado);
+
+    if (!resultado.ok) {
+      msgErro.textContent = resultado.mensagem;
+      msgErro.style.display = "block";
+      btn.disabled = false;
+      btn.textContent = "Entrar";
+      return;
+    }
+
+    window.location.href = destinoPorPapel[papelSelecionado];
+  });
+</script>
+</body>
+</html>
