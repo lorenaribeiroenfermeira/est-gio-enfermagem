@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Supervisão — EstágioEnf</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/estilos.css">
+</head>
+<body>
+
+<div class="layout">
+  <nav class="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-logo"><div class="logo-icon">E</div>
+        <div class="logo-text"><span class="main">EstágioEnf</span><span class="sub">Supervisão</span></div></div>
+    </div>
+    <div class="sidebar-perfil"><div class="perfil-info">
+      <div class="perfil-avatar" id="avatarIniciais" style="background:linear-gradient(135deg,var(--verde),#3a9d58)">--</div>
+      <div><div class="perfil-nome" id="nomeSupervisao">Carregando...</div>
+        <div class="perfil-cargo">Supervisão de estágio</div></div>
+    </div></div>
+    <div class="sidebar-nav">
+      <div class="nav-grupo">
+        <div class="nav-item ativo" onclick="mostrarSecao('acompanhamento')"><span class="nav-icon">📊</span> Acompanhamento</div>
+        <div class="nav-item" onclick="mostrarSecao('alunos')"><span class="nav-icon">🎓</span> Cadastro de alunos</div>
+        <div class="nav-item" onclick="mostrarSecao('preceptores')"><span class="nav-icon">🩺</span> Cadastro de preceptores</div>
+        <div class="nav-item" onclick="mostrarSecao('campos')"><span class="nav-icon">🏥</span> Campos de estágio</div>
+        <div class="nav-item" onclick="mostrarSecao('auditoria')"><span class="nav-icon">🔍</span> Auditoria</div>
+      </div>
+    </div>
+    <div class="sidebar-rodape"><button class="btn-sair" onclick="fazerLogout()">↩ Sair</button></div>
+  </nav>
+
+  <div class="conteudo">
+    <div class="topbar"><div class="topbar-titulo" id="tituloSecao">Acompanhamento dos grupos</div></div>
+    <div class="pagina">
+
+      <!-- ACOMPANHAMENTO -->
+      <div id="secaoAcompanhamento">
+        <div class="cards-resumo">
+          <div class="card-resumo laranja"><div class="card-numero" id="numGrupos">—</div><div class="card-label">Grupos ativos</div></div>
+          <div class="card-resumo verde"><div class="card-numero" id="numEmDia">—</div><div class="card-label">Frequência em dia</div></div>
+          <div class="card-resumo vermelho"><div class="card-numero" id="numPendentes">—</div><div class="card-label">Pendências</div></div>
+        </div>
+        <div class="secao">
+          <div class="secao-header"><div><div class="secao-titulo">Grupos</div>
+            <div class="secao-sub">Status de lançamento por preceptor</div></div></div>
+          <table>
+            <tr><th>Grupo</th><th>Preceptor</th><th>Frequência</th><th>Nota final</th><th></th></tr>
+            <tbody id="tabelaGrupos"></tbody>
+          </table>
+          <div class="vazio" id="vazioGrupos" style="display:none;">Nenhum grupo cadastrado ainda.</div>
+        </div>
+      </div>
+
+      <!-- ALUNOS -->
+      <div id="secaoAlunos" style="display:none;">
+        <div class="secao">
+          <div class="secao-header">
+            <div><div class="secao-titulo">Alunos cadastrados</div><div class="secao-sub">Gerencie os alunos do sistema</div></div>
+            <button class="btn btn-primario" onclick="abrirModalAluno()">+ Novo aluno</button>
+          </div>
+          <table>
+            <tr><th>Nome</th><th>Matrícula</th><th>Grupo</th><th></th></tr>
+            <tbody id="tabelaAlunos"></tbody>
+          </table>
+          <div class="vazio" id="vazioAlunos" style="display:none;">Nenhum aluno cadastrado ainda.</div>
+        </div>
+      </div>
+
+      <!-- PRECEPTORES -->
+      <div id="secaoPreceptores" style="display:none;">
+        <div class="secao">
+          <div class="secao-header">
+            <div><div class="secao-titulo">Preceptores cadastrados</div><div class="secao-sub">Login criado automaticamente com o CPF</div></div>
+            <button class="btn btn-primario" onclick="abrirModalPreceptor()">+ Novo preceptor</button>
+          </div>
+          <table>
+            <tr><th>Nome</th><th>CPF</th><th>Grupos</th></tr>
+            <tbody id="tabelaPreceptores"></tbody>
+          </table>
+          <div class="vazio" id="vazioPreceptores" style="display:none;">Nenhum preceptor cadastrado ainda.</div>
+        </div>
+      </div>
+
+      <!-- CAMPOS -->
+      <div id="secaoCampos" style="display:none;">
+        <div class="secao">
+          <div class="secao-header">
+            <div><div class="secao-titulo">Campos de estágio</div><div class="secao-sub">Locais parceiros cadastrados</div></div>
+            <button class="btn btn-primario" onclick="abrirModalCampo()">+ Novo campo</button>
+          </div>
+          <table>
+            <tr><th>Nome</th><th>Local</th><th>Status</th></tr>
+            <tbody id="tabelaCampos"></tbody>
+          </table>
+          <div class="vazio" id="vazioCampos" style="display:none;">Nenhum campo cadastrado ainda.</div>
+        </div>
+      </div>
+
+      <!-- AUDITORIA -->
+      <div id="secaoAuditoria" style="display:none;">
+        <div class="secao">
+          <div class="secao-header"><div><div class="secao-titulo">Auditoria</div>
+            <div class="secao-sub">Ações registradas no sistema</div></div></div>
+          <table>
+            <tr><th>Quando</th><th>Quem</th><th>Ação</th></tr>
+            <tbody id="tabelaAuditoria"></tbody>
+          </table>
+          <div class="vazio" id="vazioAuditoria" style="display:none;">Nenhum registro ainda.</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: novo aluno -->
+<div class="modal-overlay" id="modalAluno">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-titulo">Novo aluno</div>
+      <button class="btn-fechar" onclick="fecharModal('modalAluno')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-grupo"><label class="form-label">Nome completo</label><input class="form-input" id="novoAlunoNome"></div>
+      <div class="form-grupo"><label class="form-label">CPF (somente números)</label><input class="form-input" id="novoAlunoCPF" maxlength="11" placeholder="Ex: 12345678900"></div>
+      <div class="form-grupo"><label class="form-label">Matrícula</label><input class="form-input" id="novoAlunoMatricula"></div>
+      <div class="form-grupo"><label class="form-label">Semestre</label><input class="form-input" id="novoAlunoSemestre"></div>
+      <div class="form-grupo"><label class="form-label">Grupo</label>
+        <select class="form-select" id="novoAlunoGrupo"><option value="">Sem grupo</option></select></div>
+      <div class="login-erro" id="msgErroAluno"></div>
+      <p style="font-size:12px;color:var(--cinza-texto);margin-top:8px;">O login e a senha do aluno serão o próprio CPF (11 números, sem pontos ou traços).</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secundario" onclick="fecharModal('modalAluno')">Cancelar</button>
+      <button class="btn btn-primario" onclick="salvarAluno()">Salvar aluno</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: novo preceptor -->
+<div class="modal-overlay" id="modalPreceptor">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-titulo">Novo preceptor</div>
+      <button class="btn-fechar" onclick="fecharModal('modalPreceptor')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-grupo"><label class="form-label">Nome completo</label><input class="form-input" id="novoPreceptorNome"></div>
+      <div class="form-grupo"><label class="form-label">CPF (somente números)</label><input class="form-input" id="novoPreceptorCPF" maxlength="11" placeholder="Ex: 12345678900"></div>
+      <div class="login-erro" id="msgErroPreceptor"></div>
+      <p style="font-size:12px;color:var(--cinza-texto);margin-top:8px;">O login e a senha do preceptor serão o próprio CPF (11 números, sem pontos ou traços).</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secundario" onclick="fecharModal('modalPreceptor')">Cancelar</button>
+      <button class="btn btn-primario" id="btnSalvarPreceptor" onclick="salvarPreceptor()">Salvar preceptor</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: novo campo -->
+<div class="modal-overlay" id="modalCampo">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-titulo">Novo campo de estágio</div>
+      <button class="btn-fechar" onclick="fecharModal('modalCampo')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-grupo"><label class="form-label">Nome</label><input class="form-input" id="novoCampoNome"></div>
+      <div class="form-grupo"><label class="form-label">Local</label><input class="form-input" id="novoCampoLocal"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secundario" onclick="fecharModal('modalCampo')">Cancelar</button>
+      <button class="btn btn-primario" onclick="salvarCampo()">Salvar campo</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/supabase-config.js"></script>
+<script src="../js/auth.js"></script>
+<script>
+  let supervisaoPerfil = null;
+
+  function iniciais(nome) {
+    return nome.split(' ').filter(Boolean).slice(0, 2).map(p => p[0]).join('').toUpperCase();
+  }
+
+  function mostrarSecao(nome) {
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('ativo'));
+    event.currentTarget.classList.add('ativo');
+    ['acompanhamento', 'alunos', 'preceptores', 'campos', 'auditoria'].forEach(s => {
+      document.getElementById('secao' + s.charAt(0).toUpperCase() + s.slice(1)).style.display = s === nome ? 'block' : 'none';
+    });
+    const titulos = { acompanhamento: 'Acompanhamento dos grupos', alunos: 'Cadastro de alunos', preceptores: 'Cadastro de preceptores', campos: 'Campos de estágio', auditoria: 'Auditoria' };
+    document.getElementById('tituloSecao').textContent = titulos[nome];
+  }
+
+  function abrirModalAluno() { document.getElementById('modalAluno').classList.add('ativo'); }
+  function abrirModalPreceptor() { document.getElementById('modalPreceptor').classList.add('ativo'); }
+  function abrirModalCampo() { document.getElementById('modalCampo').classList.add('ativo'); }
+  function fecharModal(id) { document.getElementById(id).classList.remove('ativo'); }
+
+  async function carregarDados() {
+    const perfil = await protegerPagina('supervisao');
+    if (!perfil) return;
+    supervisaoPerfil = perfil;
+
+    document.getElementById('nomeSupervisao').textContent = perfil.nome;
+    document.getElementById('avatarIniciais').textContent = iniciais(perfil.nome);
+
+    await carregarAcompanhamento();
+    await carregarAlunos();
+    await carregarPreceptores();
+    await carregarCampos();
+    await carregarAuditoria();
+  }
+
+  async function carregarAcompanhamento() {
+    const { data: grupos } = await supabaseClient
+      .from('grupos')
+      .select('*, perfis(nome), campos_estagio(nome)')
+      .eq('ativo', true);
+
+    const tabela = document.getElementById('tabelaGrupos');
+    tabela.innerHTML = '';
+
+    if (!grupos || grupos.length === 0) {
+      document.getElementById('vazioGrupos').style.display = 'block';
+      document.getElementById('numGrupos').textContent = '0';
+      document.getElementById('numEmDia').textContent = '0';
+      document.getElementById('numPendentes').textContent = '0';
+      return;
+    }
+
+    let emDia = 0, pendentes = 0;
+
+    for (const grupo of grupos) {
+      const { count: totalAlunos } = await supabaseClient
+        .from('alunos').select('*', { count: 'exact', head: true }).eq('grupo_id', grupo.id);
+
+      const { count: totalLancamentos } = await supabaseClient
+        .from('lancamentos').select('*', { count: 'exact', head: true }).eq('grupo_id', grupo.id);
+
+      const { data: avaliacao } = await supabaseClient
+        .from('avaliacoes_ciclo').select('*').eq('grupo_id', grupo.id).maybeSingle();
+
+      const freqLancada = totalAlunos > 0 && totalLancamentos > 0;
+      const notaLancada = !!avaliacao;
+
+      if (freqLancada) emDia++; else pendentes++;
+
+      const linha = document.createElement('tr');
+      linha.innerHTML = `
+        <td>${grupo.nome}</td>
+        <td>${grupo.perfis?.nome || '—'}</td>
+        <td>${freqLancada ? '<span class="badge badge-verde">Lançado</span>' : '<span class="badge badge-vermelho">Pendente</span>'}</td>
+        <td>${notaLancada ? '<span class="badge badge-verde">Lançado</span>' : '<span class="badge badge-vermelho">Pendente</span>'}</td>
+        <td><button class="btn-tabela">Avaliar</button></td>
+      `;
+      tabela.appendChild(linha);
+    }
+
+    document.getElementById('numGrupos').textContent = grupos.length;
+    document.getElementById('numEmDia').textContent = emDia;
+    document.getElementById('numPendentes').textContent = pendentes;
+  }
+
+  async function carregarAlunos() {
+    const { data: alunos } = await supabaseClient.from('alunos').select('*, grupos(nome)');
+    const { data: grupos } = await supabaseClient.from('grupos').select('id, nome').eq('ativo', true);
+
+    const seletorGrupo = document.getElementById('novoAlunoGrupo');
+    (grupos || []).forEach(g => {
+      const opcao = document.createElement('option');
+      opcao.value = g.id; opcao.textContent = g.nome;
+      seletorGrupo.appendChild(opcao);
+    });
+
+    const tabela = document.getElementById('tabelaAlunos');
+    tabela.innerHTML = '';
+    if (!alunos || alunos.length === 0) {
+      document.getElementById('vazioAlunos').style.display = 'block';
+      return;
+    }
+    alunos.forEach(aluno => {
+      const linha = document.createElement('tr');
+      linha.innerHTML = `<td>${aluno.nome}</td><td>${aluno.matricula || '—'}</td><td>${aluno.grupos?.nome || '—'}</td><td><button class="btn-tabela">Editar</button></td>`;
+      tabela.appendChild(linha);
+    });
+  }
+
+  async function salvarAluno() {
+    const nome = document.getElementById('novoAlunoNome').value.trim();
+    const cpf = document.getElementById('novoAlunoCPF').value.trim();
+    const matricula = document.getElementById('novoAlunoMatricula').value.trim();
+    const semestre = document.getElementById('novoAlunoSemestre').value.trim();
+    const grupoId = document.getElementById('novoAlunoGrupo').value || null;
+    const msgErro = document.getElementById('msgErroAluno');
+    const btn = event.currentTarget;
+
+    msgErro.style.display = 'none';
+    if (!nome || !cpf) {
+      msgErro.textContent = 'Preencha nome e CPF.';
+      msgErro.style.display = 'block';
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Salvando...';
+
+    const resultadoAcesso = await criarAcessoPorCPF(cpf, nome, 'aluno');
+
+    if (!resultadoAcesso.ok) {
+      msgErro.textContent = resultadoAcesso.mensagem;
+      msgErro.style.display = 'block';
+      btn.disabled = false;
+      btn.textContent = 'Salvar aluno';
+      return;
+    }
+
+    await supabaseClient.from('alunos').insert({
+      perfil_id: resultadoAcesso.usuarioId,
+      nome, matricula, semestre, grupo_id: grupoId,
+    });
+    await registrarAuditoria(supervisaoPerfil.id, 'cadastrou aluno', { nome });
+
+    btn.disabled = false;
+    btn.textContent = 'Salvar aluno';
+    fecharModal('modalAluno');
+    document.getElementById('novoAlunoNome').value = '';
+    document.getElementById('novoAlunoCPF').value = '';
+    document.getElementById('novoAlunoMatricula').value = '';
+    document.getElementById('novoAlunoSemestre').value = '';
+    document.getElementById('tabelaAlunos').innerHTML = '';
+    document.getElementById('vazioAlunos').style.display = 'none';
+    await carregarAlunos();
+    await carregarAcompanhamento();
+  }
+
+  async function carregarPreceptores() {
+    const { data: preceptores } = await supabaseClient
+      .from('perfis')
+      .select('*, grupos(nome)')
+      .eq('papel', 'preceptor');
+
+    const tabela = document.getElementById('tabelaPreceptores');
+    tabela.innerHTML = '';
+    if (!preceptores || preceptores.length === 0) {
+      document.getElementById('vazioPreceptores').style.display = 'block';
+      return;
+    }
+    preceptores.forEach(preceptor => {
+      const gruposNomes = (preceptor.grupos || []).map(g => g.nome).join(', ') || '—';
+      const linha = document.createElement('tr');
+      linha.innerHTML = `<td>${preceptor.nome}</td><td>${preceptor.cpf || '—'}</td><td>${gruposNomes}</td>`;
+      tabela.appendChild(linha);
+    });
+  }
+
+  async function salvarPreceptor() {
+    const nome = document.getElementById('novoPreceptorNome').value.trim();
+    const cpf = document.getElementById('novoPreceptorCPF').value.trim();
+    const msgErro = document.getElementById('msgErroPreceptor');
+    const btn = document.getElementById('btnSalvarPreceptor');
+
+    msgErro.style.display = 'none';
+    if (!nome || !cpf) {
+      msgErro.textContent = 'Preencha nome e CPF.';
+      msgErro.style.display = 'block';
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Salvando...';
+
+    const resultado = await criarAcessoPorCPF(cpf, nome, 'preceptor');
+
+    if (!resultado.ok) {
+      msgErro.textContent = resultado.mensagem;
+      msgErro.style.display = 'block';
+      btn.disabled = false;
+      btn.textContent = 'Salvar preceptor';
+      return;
+    }
+
+    await registrarAuditoria(supervisaoPerfil.id, 'cadastrou preceptor', { nome });
+
+    btn.disabled = false;
+    btn.textContent = 'Salvar preceptor';
+    fecharModal('modalPreceptor');
+    document.getElementById('novoPreceptorNome').value = '';
+    document.getElementById('novoPreceptorCPF').value = '';
+    document.getElementById('tabelaPreceptores').innerHTML = '';
+    document.getElementById('vazioPreceptores').style.display = 'none';
+    await carregarPreceptores();
+  }
+
+  async function carregarCampos() {
+    const { data: campos } = await supabaseClient.from('campos_estagio').select('*');
+    const tabela = document.getElementById('tabelaCampos');
+    tabela.innerHTML = '';
+    if (!campos || campos.length === 0) {
+      document.getElementById('vazioCampos').style.display = 'block';
+      return;
+    }
+    campos.forEach(campo => {
+      const linha = document.createElement('tr');
+      linha.innerHTML = `<td>${campo.nome}</td><td>${campo.local || '—'}</td><td>${campo.ativo ? '<span class="badge badge-verde">Ativo</span>' : '<span class="badge badge-cinza">Inativo</span>'}</td>`;
+      tabela.appendChild(linha);
+    });
+  }
+
+  async function salvarCampo() {
+    const nome = document.getElementById('novoCampoNome').value.trim();
+    const local = document.getElementById('novoCampoLocal').value.trim();
+    if (!nome) return;
+
+    await supabaseClient.from('campos_estagio').insert({ nome, local });
+    await registrarAuditoria(supervisaoPerfil.id, 'cadastrou campo de estágio', { nome });
+
+    fecharModal('modalCampo');
+    document.getElementById('novoCampoNome').value = '';
+    document.getElementById('novoCampoLocal').value = '';
+    document.getElementById('tabelaCampos').innerHTML = '';
+    document.getElementById('vazioCampos').style.display = 'none';
+    await carregarCampos();
+  }
+
+  async function carregarAuditoria() {
+    const { data: registros } = await supabaseClient
+      .from('auditoria')
+      .select('*, perfis(nome)')
+      .order('criado_em', { ascending: false })
+      .limit(50);
+
+    const tabela = document.getElementById('tabelaAuditoria');
+    tabela.innerHTML = '';
+    if (!registros || registros.length === 0) {
+      document.getElementById('vazioAuditoria').style.display = 'block';
+      return;
+    }
+    registros.forEach(reg => {
+      const quando = new Date(reg.criado_em).toLocaleString('pt-BR');
+      const linha = document.createElement('tr');
+      linha.innerHTML = `<td>${quando}</td><td>${reg.perfis?.nome || '—'}</td><td>${reg.acao}</td>`;
+      tabela.appendChild(linha);
+    });
+  }
+
+  carregarDados();
+</script>
+</body>
+</html>

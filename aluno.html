@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Minha escala — EstágioEnf</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/estilos.css">
+</head>
+<body>
+
+<div class="layout">
+  <nav class="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-logo"><div class="logo-icon">E</div>
+        <div class="logo-text"><span class="main">EstágioEnf</span><span class="sub">Área do Aluno</span></div></div>
+    </div>
+    <div class="sidebar-perfil"><div class="perfil-info">
+      <div class="perfil-avatar" id="avatarIniciais">--</div>
+      <div><div class="perfil-nome" id="nomeAluno">Carregando...</div>
+        <div class="perfil-cargo" id="grupoAluno"></div></div>
+    </div></div>
+    <div class="sidebar-nav">
+      <div class="nav-grupo">
+        <div class="nav-item ativo" onclick="mostrarSecao('escala')"><span class="nav-icon">📅</span> Minha escala</div>
+        <div class="nav-item" onclick="mostrarSecao('faltas')"><span class="nav-icon">🚫</span> Minhas faltas</div>
+        <div class="nav-item" onclick="mostrarSecao('faq')"><span class="nav-icon">❓</span> FAQ</div>
+      </div>
+    </div>
+    <div class="sidebar-rodape"><button class="btn-sair" onclick="fazerLogout()">↩ Sair</button></div>
+  </nav>
+
+  <div class="conteudo">
+    <div class="topbar"><div class="topbar-titulo" id="tituloSecao">Minha escala</div></div>
+    <div class="pagina">
+
+      <div id="secaoEscala">
+        <div class="secao">
+          <div class="secao-header"><div><div class="secao-titulo">Próximos dias de campo</div>
+            <div class="secao-sub" id="subEscala">—</div></div></div>
+          <table id="tabelaEscala">
+            <tr><th>Data</th><th>Turno</th><th>Setor</th></tr>
+          </table>
+          <div class="vazio" id="vazioEscala" style="display:none;">Nenhum dia de estágio cadastrado ainda.</div>
+        </div>
+      </div>
+
+      <div id="secaoFaltas" style="display:none;">
+        <div class="secao">
+          <div class="secao-header"><div><div class="secao-titulo">Minhas faltas</div>
+            <div class="secao-sub">Situação de cada data</div></div></div>
+          <table id="tabelaFaltas">
+            <tr><th>Data</th><th>Situação</th></tr>
+          </table>
+          <div class="vazio" id="vazioFaltas" style="display:none;">Nenhuma falta registrada.</div>
+        </div>
+      </div>
+
+      <div id="secaoFaq" style="display:none;">
+        <div id="listaFaq"></div>
+        <div class="vazio" id="vazioFaq" style="display:none;">Nenhuma pergunta cadastrada ainda.</div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/supabase-config.js"></script>
+<script src="../js/auth.js"></script>
+<script>
+  let alunoAtual = null;
+
+  function mostrarSecao(nome) {
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('ativo'));
+    event.currentTarget.classList.add('ativo');
+    document.getElementById('secaoEscala').style.display = nome === 'escala' ? 'block' : 'none';
+    document.getElementById('secaoFaltas').style.display = nome === 'faltas' ? 'block' : 'none';
+    document.getElementById('secaoFaq').style.display = nome === 'faq' ? 'block' : 'none';
+    const titulos = { escala: 'Minha escala', faltas: 'Minhas faltas', faq: 'FAQ' };
+    document.getElementById('tituloSecao').textContent = titulos[nome];
+  }
+
+  function iniciais(nome) {
+    return nome.split(' ').filter(Boolean).slice(0, 2).map(p => p[0]).join('').toUpperCase();
+  }
+
+  function formatarData(dataISO) {
+    const [ano, mes, dia] = dataISO.split('-');
+    return `${dia}/${mes}`;
+  }
+
+  async function carregarDados() {
+    const perfil = await protegerPagina('aluno');
+    if (!perfil) return;
+
+    document.getElementById('nomeAluno').textContent = perfil.nome;
+    document.getElementById('avatarIniciais').textContent = iniciais(perfil.nome);
+
+    // Busca o registro de aluno vinculado a este perfil
+    const { data: aluno } = await supabaseClient
+      .from('alunos')
+      .select('*, grupos(nome, campos_estagio(nome))')
+      .eq('perfil_id', perfil.id)
+      .single();
+
+    if (!aluno) {
+      document.getElementById('grupoAluno').textContent = 'Sem grupo vinculado';
+      return;
+    }
+
+    alunoAtual = aluno;
+    const nomeGrupo = aluno.grupos ? aluno.grupos.nome : '';
+    const nomeCampo = aluno.grupos && aluno.grupos.campos_estagio ? aluno.grupos.campos_estagio.nome : '';
+    document.getElementById('grupoAluno').textContent = [nomeGrupo, nomeCampo].filter(Boolean).join(' · ');
+    document.getElementById('subEscala').textContent = [nomeGrupo, nomeCampo].filter(Boolean).join(' · ');
+
+    await carregarEscala(aluno.grupo_id);
+    await carregarFaltas(aluno.id);
+    await carregarFaq();
+  }
+
+  async function carregarEscala(grupoId) {
+    const tabela = document.getElementById('tabelaEscala');
+    if (!grupoId) {
+      document.getElementById('vazioEscala').style.display = 'block';
+      return;
+    }
+    const { data: escala } = await supabaseClient
+      .from('escala')
+      .select('*')
+      .eq('grupo_id', grupoId)
+      .gte('data', new Date().toISOString().slice(0, 10))
+      .order('data', { ascending: true });
+
+    if (!escala || escala.length === 0) {
+      document.getElementById('vazioEscala').style.display = 'block';
+      return;
+    }
+
+    escala.forEach(dia => {
+      const linha = document.createElement('tr');
+      linha.innerHTML = `<td>${formatarData(dia.data)}</td><td>${dia.turno || '—'}</td><td>${dia.setor || '—'}</td>`;
+      tabela.appendChild(linha);
+    });
+  }
+
+  async function carregarFaltas(alunoId) {
+    const tabela = document.getElementById('tabelaFaltas');
+    const { data: faltas } = await supabaseClient
+      .from('lancamentos')
+      .select('*')
+      .eq('aluno_id', alunoId)
+      .eq('presenca', 'falta')
+      .order('data', { ascending: false });
+
+    if (!faltas || faltas.length === 0) {
+      document.getElementById('vazioFaltas').style.display = 'block';
+      return;
+    }
+
+    faltas.forEach(falta => {
+      const linha = document.createElement('tr');
+      const situacao = falta.atestado
+        ? '<span class="badge badge-verde">Abonada (atestado)</span>'
+        : '<span class="badge badge-vermelho">Não abonada</span>';
+      linha.innerHTML = `<td>${formatarData(falta.data)}</td><td>${situacao}</td>`;
+      tabela.appendChild(linha);
+    });
+  }
+
+  async function carregarFaq() {
+    const lista = document.getElementById('listaFaq');
+    const { data: perguntas } = await supabaseClient
+      .from('faq')
+      .select('*')
+      .order('ordem', { ascending: true });
+
+    if (!perguntas || perguntas.length === 0) {
+      document.getElementById('vazioFaq').style.display = 'block';
+      return;
+    }
+
+    perguntas.forEach(item => {
+      const div = document.createElement('div');
+      div.className = 'faq-item';
+      div.innerHTML = `<div class="faq-q">${item.pergunta}</div><div class="faq-a">${item.resposta}</div>`;
+      lista.appendChild(div);
+    });
+  }
+
+  carregarDados();
+</script>
+</body>
+</html>

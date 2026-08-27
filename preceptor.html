@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lançar frequência — EstágioEnf</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/estilos.css">
+</head>
+<body>
+
+<div class="layout">
+  <nav class="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-logo"><div class="logo-icon">E</div>
+        <div class="logo-text"><span class="main">EstágioEnf</span><span class="sub">Área do Preceptor</span></div></div>
+    </div>
+    <div class="sidebar-perfil"><div class="perfil-info">
+      <div class="perfil-avatar" id="avatarIniciais" style="background:linear-gradient(135deg,var(--azul),#2563eb)">--</div>
+      <div><div class="perfil-nome" id="nomePreceptor">Carregando...</div>
+        <div class="perfil-cargo">Preceptor</div></div>
+    </div></div>
+    <div class="sidebar-nav">
+      <div class="nav-grupo">
+        <div class="nav-grupo-titulo">Meus grupos</div>
+        <div id="listaGrupos"><!-- preenchido via JS --></div>
+      </div>
+    </div>
+    <div class="sidebar-rodape"><button class="btn-sair" onclick="fazerLogout()">↩ Sair</button></div>
+  </nav>
+
+  <div class="conteudo">
+    <div class="topbar">
+      <div class="topbar-titulo">Lançar frequência</div>
+      <div class="pill-data" id="pillHoje">—</div>
+    </div>
+    <div class="pagina">
+
+      <div class="aviso aviso-azul" id="avisoGrupo" style="display:none;">
+        🏥 <div><b id="avisoNomeGrupo">—</b>
+          <div style="font-size:12px;margin-top:2px;opacity:.85" id="avisoPeriodo"></div></div>
+      </div>
+
+      <div class="freq-card" id="cardFreq" style="display:none;">
+        <div class="freq-header">
+          <div class="freq-header-info">
+            <div class="titulo" id="freqTitulo">—</div>
+            <div class="sub">Lançamento de hoje</div>
+          </div>
+          <div class="freq-data-hoje" id="freqDataHoje">—</div>
+        </div>
+        <div id="listaAlunosFreq"><!-- preenchido via JS --></div>
+      </div>
+
+      <div class="vazio" id="semGrupo" style="display:none;">Selecione um grupo para lançar a frequência.</div>
+
+      <div style="display:flex;justify-content:flex-end;gap:10px;" id="botoesAcao" style="display:none;">
+        <button class="btn btn-secundario" onclick="gerarRelatorioPDF()">📄 Relatório PDF</button>
+        <button class="btn btn-verde" id="btnSalvar" onclick="salvarLancamentos()">✓ Confirmar e assinar digitalmente</button>
+      </div>
+
+      <div class="login-erro" id="msgFeedback" style="display:none;margin-top:16px;"></div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/supabase-config.js"></script>
+<script src="../js/auth.js"></script>
+<script>
+  let perceptorPerfil = null;
+  let grupoAtualId = null;
+  let alunosDoGrupo = [];
+  let lancamentosPendentes = {}; // { alunoId: { presenca, nota, atestado } }
+
+  function iniciais(nome) {
+    return nome.split(' ').filter(Boolean).slice(0, 2).map(p => p[0]).join('').toUpperCase();
+  }
+
+  function hojeISO() {
+    return new Date().toISOString().slice(0, 10);
+  }
+
+  function formatarDataExtenso(dataISO) {
+    const data = new Date(dataISO + 'T00:00:00');
+    return data.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit' });
+  }
+
+  async function carregarDados() {
+    const perfil = await protegerPagina('preceptor');
+    if (!perfil) return;
+    perceptorPerfil = perfil;
+
+    document.getElementById('nomePreceptor').textContent = perfil.nome;
+    document.getElementById('avatarIniciais').textContent = iniciais(perfil.nome);
+    document.getElementById('pillHoje').textContent = '📅 ' + formatarDataExtenso(hojeISO());
+
+    const { data: grupos } = await supabaseClient
+      .from('grupos')
+      .select('*, campos_estagio(nome)')
+      .eq('preceptor_id', perfil.id)
+      .eq('ativo', true);
+
+    const listaEl = document.getElementById('listaGrupos');
+    if (!grupos || grupos.length === 0) {
+      listaEl.innerHTML = '<div class="nav-item">Nenhum grupo atribuído</div>';
+      document.getElementById('semGrupo').style.display = 'block';
+      return;
+    }
+
+    grupos.forEach((grupo, indice) => {
+      const item = document.createElement('div');
+      item.className = 'nav-item' + (indice === 0 ? ' ativo' : '');
+      item.innerHTML = `<span class="nav-icon">${indice === 0 ? '🅰️' : '🅱️'}</span> ${grupo.nome} — ${grupo.turno || ''}`;
+      item.onclick = () => selecionarGrupo(grupo, item);
+      listaEl.appendChild(item);
+    });
+
+    selecionarGrupo(grupos[0], listaEl.querySelector('.nav-item'));
+  }
+
+  async function selecionarGrupo(grupo, itemClicado) {
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('ativo'));
+    if (itemClicado) itemClicado.classList.add('ativo');
+
+    grupoAtualId = grupo.id;
+    lancamentosPendentes = {};
+
+    document.getElementById('avisoGrupo').style.display = 'flex';
+    document.getElementById('avisoNomeGrupo').textContent = `${grupo.campos_estagio?.nome || 'Campo'} – ${grupo.nome}`;
+    document.getElementById('avisoPeriodo').textContent =
+      `Período: ${grupo.data_inicio || '—'} a ${grupo.data_fim || '—'}`;
+
+    const { data: alunos } = await supabaseClient
+      .from('alunos')
+      .select('*')
+      .eq('grupo_id', grupo.id);
+
+    alunosDoGrupo = alunos || [];
+
+    const cardFreq = document.getElementById('cardFreq');
+    const semGrupo = document.getElementById('semGrupo');
+    const botoesAcao = document.getElementById('botoesAcao');
+
+    if (alunosDoGrupo.length === 0) {
+      cardFreq.style.display = 'none';
+      botoesAcao.style.display = 'none';
+      semGrupo.style.display = 'block';
+      return;
+    }
+
+    semGrupo.style.display = 'none';
+    cardFreq.style.display = 'block';
+    botoesAcao.style.display = 'flex';
+    document.getElementById('freqTitulo').textContent = `${grupo.nome} — ${alunosDoGrupo.length} alunos`;
+    document.getElementById('freqDataHoje').textContent = formatarDataExtenso(hojeISO());
+
+    // Busca lançamentos já feitos hoje para pré-preencher
+    const { data: lancamentosHoje } = await supabaseClient
+      .from('lancamentos')
+      .select('*')
+      .eq('data', hojeISO())
+      .in('aluno_id', alunosDoGrupo.map(a => a.id));
+
+    const mapaLancamentos = {};
+    (lancamentosHoje || []).forEach(l => { mapaLancamentos[l.aluno_id] = l; });
+
+    const lista = document.getElementById('listaAlunosFreq');
+    lista.innerHTML = '';
+    alunosDoGrupo.forEach(aluno => {
+      const existente = mapaLancamentos[aluno.id];
+      const presencaAtual = existente?.presenca || 'presente';
+      const notaAtual = existente?.nota ?? '';
+      const atestadoAtual = existente?.atestado || false;
+
+      lancamentosPendentes[aluno.id] = { presenca: presencaAtual, nota: notaAtual, atestado: atestadoAtual };
+
+      const linha = document.createElement('div');
+      linha.className = 'freq-aluno';
+      linha.innerHTML = `
+        <div style="flex:1">
+          <div class="aluno-nome">${aluno.nome}</div>
+          <div class="aluno-modalidade">${aluno.semestre || ''}</div>
+        </div>
+        <div style="width:80px;text-align:center;">
+          ${atestadoAtual
+            ? '<span class="badge badge-laranja">📎 Atestado</span>'
+            : `<input type="number" step="0.1" min="0" max="10" class="nota-input" value="${notaAtual}"
+                 onchange="atualizarNota('${aluno.id}', this.value)" placeholder="Nota">`
+          }
+        </div>
+        <div class="freq-status">
+          <button class="btn-status btn-presente ${presencaAtual === 'presente' ? 'selecionado' : ''}"
+            onclick="atualizarPresenca('${aluno.id}', 'presente', this)">✓ Presente</button>
+          <button class="btn-status btn-falta ${presencaAtual === 'falta' ? 'selecionado' : ''}"
+            onclick="atualizarPresenca('${aluno.id}', 'falta', this)">✗ Falta</button>
+        </div>
+      `;
+      lista.appendChild(linha);
+    });
+  }
+
+  function atualizarPresenca(alunoId, valor, botaoClicado) {
+    lancamentosPendentes[alunoId].presenca = valor;
+    const container = botaoClicado.parentElement;
+    container.querySelectorAll('button').forEach(b => b.classList.remove('selecionado'));
+    botaoClicado.classList.add('selecionado');
+  }
+
+  function atualizarNota(alunoId, valor) {
+    lancamentosPendentes[alunoId].nota = valor;
+  }
+
+  async function salvarLancamentos() {
+    const btn = document.getElementById('btnSalvar');
+    const msg = document.getElementById('msgFeedback');
+    btn.disabled = true;
+    btn.textContent = 'Salvando...';
+    msg.style.display = 'none';
+
+    const hoje = hojeISO();
+    let erro = null;
+
+    for (const alunoId of Object.keys(lancamentosPendentes)) {
+      const dados = lancamentosPendentes[alunoId];
+      const { error } = await supabaseClient
+        .from('lancamentos')
+        .upsert({
+          aluno_id: alunoId,
+          grupo_id: grupoAtualId,
+          data: hoje,
+          presenca: dados.presenca,
+          nota: dados.nota === '' ? null : parseFloat(dados.nota),
+          atestado: dados.atestado,
+          lancado_por: perceptorPerfil.id,
+        }, { onConflict: 'aluno_id,data' });
+
+      if (error) erro = error;
+    }
+
+    await registrarAuditoria(perceptorPerfil.id, 'lançou frequência', { grupo_id: grupoAtualId, data: hoje });
+
+    btn.disabled = false;
+    btn.textContent = '✓ Confirmar e assinar digitalmente';
+    msg.style.display = 'block';
+
+    if (erro) {
+      msg.style.background = '#FEE8E8'; msg.style.color = '#c0392b';
+      msg.textContent = 'Ocorreu um erro ao salvar. Tente novamente.';
+    } else {
+      msg.style.background = 'var(--verde-claro)'; msg.style.color = 'var(--verde)';
+      msg.textContent = 'Lançamentos salvos com sucesso.';
+    }
+  }
+
+  function gerarRelatorioPDF() {
+    window.print();
+  }
+
+  carregarDados();
+</script>
+</body>
+</html>
